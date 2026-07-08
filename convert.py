@@ -12,6 +12,22 @@ import sys
 import pymupdf4llm
 
 BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+TABLE_SEP_RE = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$")
+
+
+def pad_empty_header_cells(md_text):
+    """Ensure table header cells have at least a space.
+
+    A header row with a blank cell (pymupdf4llm emits "||" for those)
+    renders as a collapsed, misaligned header in Obsidian.
+    """
+    lines = md_text.split("\n")
+    for i in range(len(lines) - 1):
+        if lines[i].startswith("|") and TABLE_SEP_RE.match(lines[i + 1].strip()):
+            cells = lines[i].split("|")
+            cells[1:-1] = [cell if cell.strip() else " " for cell in cells[1:-1]]
+            lines[i] = "|".join(cells)
+    return "\n".join(lines)
 
 
 def unwrap_br_tags(md_text):
@@ -42,6 +58,7 @@ def main():
         use_ocr=False,
     )
     md_text = unwrap_br_tags(md_text)
+    md_text = pad_empty_header_cells(md_text)
 
     out_file = os.path.join(target_dir, f"{name}.md")
     with open(out_file, "w", encoding="utf-8") as f:
