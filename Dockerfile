@@ -8,13 +8,12 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         inotify-tools \
         gosu \
-        ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# pymupdf4llm: pure PyMuPDF-based PDF->markdown, no ML models, no GPU/CPU
-# inference pipeline, no multi-GB weight downloads. No OCR (native-text PDFs
-# only) - trades that off for a footprint in the tens of MB instead of
-# multiple GB.
+# pymupdf4llm: PyMuPDF-based PDF->markdown with a bundled onnxruntime layout
+# model, no GPU/CPU inference pipeline, no multi-GB weight downloads. No OCR
+# (native-text PDFs only) - trades that off for a footprint in the hundreds
+# of MB instead of multiple GB.
 RUN pip install pymupdf4llm
 
 RUN groupadd -g 1000 watcher \
