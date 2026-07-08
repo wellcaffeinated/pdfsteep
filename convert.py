@@ -14,6 +14,21 @@ import pymupdf4llm
 BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
 
 
+def unwrap_br_tags(md_text):
+    """Replace <br> with a real newline, except inside table rows.
+
+    pymupdf4llm emits <br> for line breaks in prose (safe to unwrap) but
+    also uses it inside markdown table cells to pack multi-line cell
+    content onto the row's single physical line, since a literal newline
+    there would split the row and break the table. Leave those alone.
+    """
+    lines = md_text.split("\n")
+    return "\n".join(
+        line if line.lstrip().startswith("|") else BR_RE.sub("\n", line)
+        for line in lines
+    )
+
+
 def main():
     pdf_path, out_dir = sys.argv[1], sys.argv[2]
     name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -26,7 +41,7 @@ def main():
         image_path=os.path.join(target_dir, "images"),
         use_ocr=False,
     )
-    md_text = BR_RE.sub("\n", md_text)
+    md_text = unwrap_br_tags(md_text)
 
     out_file = os.path.join(target_dir, f"{name}.md")
     with open(out_file, "w", encoding="utf-8") as f:
