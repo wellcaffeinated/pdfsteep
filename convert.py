@@ -6,9 +6,12 @@ Usage: convert.py <pdf-path> <out-dir>
 Mirrors marker's old output layout: <out-dir>/<pdf-basename>/<pdf-basename>.md
 """
 import os
+import re
 import sys
 
 import pymupdf4llm
+
+BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
 
 
 def main():
@@ -23,6 +26,7 @@ def main():
         image_path=os.path.join(target_dir, "images"),
         use_ocr=False,
     )
+    md_text = BR_RE.sub("\n", md_text)
 
     out_file = os.path.join(target_dir, f"{name}.md")
     with open(out_file, "w", encoding="utf-8") as f:
