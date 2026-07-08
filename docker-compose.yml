@@ -1,0 +1,27 @@
+services:
+  marker-watch:
+    build: .
+    container_name: marker-watch
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - OUTPUT_FORMAT=${OUTPUT_FORMAT:-markdown}
+      - TORCH_DEVICE=${TORCH_DEVICE:-cpu}
+      # extra flags appended to every `marker_single` invocation, e.g. "--use_llm"
+      - MARKER_EXTRA_ARGS=${MARKER_EXTRA_ARGS:-}
+    volumes:
+      - ${IN_DIR:-./data/in}:/data/in
+      - ${OUT_DIR:-./data/out}:/data/out
+      # persistent model-weight cache; safe to keep between runs/rebuilds
+      - ${CONFIG_DIR:-./config}:/config
+    restart: unless-stopped
+    # Uncomment to run on an NVIDIA GPU (also set TORCH_DEVICE=cuda and
+    # rebuild against a CUDA-enabled base image):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
