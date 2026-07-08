@@ -1,5 +1,8 @@
 services:
   pdfsteep:
+    # pulls the published image by default; falls back to a local build
+    # only if the pull fails (image missing locally + registry unreachable)
+    image: ghcr.io/wellcaffeinated/pdfsteep:${IMAGE_TAG:-latest}
     build: .
     container_name: pdfsteep
     environment:
