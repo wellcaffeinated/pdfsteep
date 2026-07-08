@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# linuxserver-style entrypoint: remap the baked-in `marker` user to
+# linuxserver-style entrypoint: remap the baked-in `watcher` user to
 # PUID/PGID, fix ownership on the mounted dirs, then drop privileges.
 set -euo pipefail
 
@@ -8,13 +8,13 @@ PGID="${PGID:-1000}"
 IN_DIR="${IN_DIR:-/data/in}"
 OUT_DIR="${OUT_DIR:-/data/out}"
 
-echo "[marker-watch] Running as UID=${PUID} GID=${PGID}"
-echo "[marker-watch] IN_DIR=${IN_DIR} OUT_DIR=${OUT_DIR} OUTPUT_FORMAT=${OUTPUT_FORMAT:-markdown} TORCH_DEVICE=${TORCH_DEVICE:-cpu}"
+echo "[pdfsteep] Running as UID=${PUID} GID=${PGID}"
+echo "[pdfsteep] IN_DIR=${IN_DIR} OUT_DIR=${OUT_DIR}"
 
-groupmod -o -g "$PGID" marker
-usermod -o -u "$PUID" marker
+groupmod -o -g "$PGID" watcher
+usermod -o -u "$PUID" watcher
 
-mkdir -p "$IN_DIR" "$OUT_DIR" /config
-chown -R marker:marker "$IN_DIR" "$OUT_DIR" /config
+mkdir -p "$IN_DIR" "$OUT_DIR"
+chown -R watcher:watcher "$IN_DIR" "$OUT_DIR"
 
-exec gosu marker /usr/local/bin/watch.sh
+exec gosu watcher /usr/local/bin/watch.sh

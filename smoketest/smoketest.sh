@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
 # End-to-end smoketest: downloads a real PDF from arXiv, drops it in a temp
-# IN_DIR, brings up the compose stack pointed at temp in/out dirs, waits for
-# the converted markdown to show up in the temp OUT_DIR, then tears
-# everything down and removes the temp dirs it created.
+# data dir's "in" subfolder, brings up the compose stack pointed at that temp
+# dir, waits for the converted markdown to show up in "out", then tears
+# everything down and removes the temp dir it created.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${ROOT_DIR}/docker-compose.yml"
-PROJECT_NAME="marker-watch-smoketest"
+PROJECT_NAME="pdfsteep-smoketest"
 
 PDF_URL="${SMOKETEST_PDF_URL:-https://arxiv.org/pdf/1706.03762}"  # "Attention Is All You Need"
 PDF_NAME="smoketest"
-TIMEOUT="${SMOKETEST_TIMEOUT:-900}"
-POLL_INTERVAL=5
+TIMEOUT="${SMOKETEST_TIMEOUT:-60}"  # no ML inference, conversion is near-instant
+POLL_INTERVAL=2
 
 TMP_DIR="$(mktemp -d "${ROOT_DIR}/smoketest/tmp.XXXXXX")"
-IN_DIR="${TMP_DIR}/in"
-OUT_DIR="${TMP_DIR}/out"
-mkdir -p "$IN_DIR" "$OUT_DIR"
+TMP_IN="${TMP_DIR}/data/in"
+TMP_OUT="${TMP_DIR}/data/out"
+mkdir -p "$TMP_IN" "$TMP_OUT"
 
-export IN_DIR OUT_DIR
-export CONFIG_DIR="${CONFIG_DIR:-${ROOT_DIR}/config}"  # keep model cache, don't wipe it per run
+export DATA_DIR="${TMP_DIR}/data"  # container's default IN_DIR/OUT_DIR (/data/in, /data/out) live under here
 
 cleanup() {
     local status=$?
@@ -33,15 +32,15 @@ cleanup() {
 trap cleanup EXIT
 
 echo "[smoketest] Downloading sample PDF from ${PDF_URL}..."
-curl -fsSL "$PDF_URL" -o "${IN_DIR}/${PDF_NAME}.pdf"
+curl -fsSL "$PDF_URL" -o "${TMP_IN}/${PDF_NAME}.pdf"
 
 echo "[smoketest] Building image..."
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" build
 
-echo "[smoketest] Starting container (IN_DIR=${IN_DIR}, OUT_DIR=${OUT_DIR})..."
+echo "[smoketest] Starting container (DATA_DIR=${DATA_DIR})..."
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d
 
-OUT_FILE="${OUT_DIR}/${PDF_NAME}/${PDF_NAME}.md"
+OUT_FILE="${TMP_OUT}/${PDF_NAME}/${PDF_NAME}.md"
 echo "[smoketest] Waiting up to ${TIMEOUT}s for ${OUT_FILE}..."
 elapsed=0
 while [ ! -f "$OUT_FILE" ]; do

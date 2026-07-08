@@ -1,27 +1,15 @@
 services:
-  marker-watch:
+  pdfsteep:
     build: .
-    container_name: marker-watch
+    container_name: pdfsteep
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Etc/UTC}
-      - OUTPUT_FORMAT=${OUTPUT_FORMAT:-markdown}
-      - TORCH_DEVICE=${TORCH_DEVICE:-cpu}
-      # extra flags appended to every `marker_single` invocation, e.g. "--use_llm"
-      - MARKER_EXTRA_ARGS=${MARKER_EXTRA_ARGS:-}
+      # paths *inside* the container; both live under /data by default, but
+      # can be pointed at the same directory for in-place conversion
+      - IN_DIR=${IN_DIR:-/data/in}
+      - OUT_DIR=${OUT_DIR:-/data/out}
     volumes:
-      - ${IN_DIR:-./data/in}:/data/in
-      - ${OUT_DIR:-./data/out}:/data/out
-      # persistent model-weight cache; safe to keep between runs/rebuilds
-      - ${CONFIG_DIR:-./config}:/config
+      - ${DATA_DIR:-./data}:/data
     restart: unless-stopped
-    # Uncomment to run on an NVIDIA GPU (also set TORCH_DEVICE=cuda and
-    # rebuild against a CUDA-enabled base image):
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]

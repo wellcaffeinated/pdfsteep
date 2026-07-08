@@ -21,12 +21,12 @@ logs:
 
 restart: down up
 
-# end-to-end test: downloads an arXiv PDF, drops it in a temp IN_DIR,
-# waits for markdown in a temp OUT_DIR, then cleans up after itself
+# end-to-end test: downloads an arXiv PDF, drops it in a temp data dir,
+# waits for markdown to appear, then cleans up after itself
 smoketest:
     ./smoketest/smoketest.sh
 
 # remove any leftover smoketest temp dirs / containers
 clean-smoketest:
-    docker compose -p marker-watch-smoketest down --remove-orphans 2>/dev/null || true
+    docker compose -p pdfsteep-smoketest down --remove-orphans 2>/dev/null || true
     rm -rf smoketest/tmp.*

@@ -3,33 +3,28 @@ FROM python:3.11-slim-bookworm
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     IN_DIR=/data/in \
-    OUT_DIR=/data/out \
-    OUTPUT_FORMAT=markdown \
-    TORCH_DEVICE=cpu \
-    HOME=/config
+    OUT_DIR=/data/out
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         inotify-tools \
         gosu \
-        curl \
         ca-certificates \
-        libgl1 \
-        libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# CPU wheel first, so `pip install marker-pdf` doesn't pull the much larger
-# CUDA build. Override TORCH_DEVICE=cuda + rebuild with a CUDA base image
-# for GPU use.
-RUN pip install --index-url https://download.pytorch.org/whl/cpu torch \
-    && pip install marker-pdf
+# pymupdf4llm: pure PyMuPDF-based PDF->markdown, no ML models, no GPU/CPU
+# inference pipeline, no multi-GB weight downloads. No OCR (native-text PDFs
+# only) - trades that off for a footprint in the tens of MB instead of
+# multiple GB.
+RUN pip install pymupdf4llm
 
-RUN groupadd -g 1000 marker \
-    && useradd -u 1000 -g marker -M -d /config -s /usr/sbin/nologin marker
+RUN groupadd -g 1000 watcher \
+    && useradd -u 1000 -g watcher -M -s /usr/sbin/nologin watcher
 
 COPY entrypoint.sh /entrypoint.sh
 COPY watch.sh /usr/local/bin/watch.sh
-RUN chmod +x /entrypoint.sh /usr/local/bin/watch.sh
+COPY convert.py /usr/local/bin/convert.py
+RUN chmod +x /entrypoint.sh /usr/local/bin/watch.sh /usr/local/bin/convert.py
 
-VOLUME ["/data/in", "/data/out", "/config"]
+VOLUME ["/data"]
 
 ENTRYPOINT ["/entrypoint.sh"]
