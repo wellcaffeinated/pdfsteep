@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # model, no GPU/CPU inference pipeline, no multi-GB weight downloads. No OCR
 # (native-text PDFs only) - trades that off for a footprint in the hundreds
 # of MB instead of multiple GB.
-RUN pip install pymupdf4llm
+#
+# Pinned: pymupdf4llm 2.0 is an empty shim (the code moved into pymupdf 2.x),
+# so an unpinned install no longer gets a working converter.
+RUN pip install pymupdf4llm==1.28.2
 
 RUN groupadd -g 1000 watcher \
     && useradd -u 1000 -g watcher -M -s /usr/sbin/nologin watcher
