@@ -12,6 +12,17 @@ convert_pdf() {
     local name
     name="$(basename "$pdf")"
 
+    # Hidden files (macOS ._ AppleDouble metadata, sync/editor temp files)
+    # are never the user's PDF.
+    case "$name" in
+        .*) return ;;
+    esac
+    # Readers accept the %PDF- header anywhere in the first 1024 bytes.
+    if ! head -c 1024 "$pdf" | grep -q '%PDF-'; then
+        echo "[pdfsteep] Skipping ${name}: not a PDF" >&2
+        return
+    fi
+
     # convert.py writes to OUT_DIR/<pdf-basename-without-ext>/
     echo "[pdfsteep] Converting ${name}"
     if python3 /usr/local/bin/convert.py "$pdf" "$OUT_DIR"; then
@@ -29,7 +40,7 @@ done
 shopt -u nullglob nocaseglob
 
 echo "[pdfsteep] Watching ${IN_DIR} for new PDFs..."
-inotifywait -m -q -e close_write -e moved_to --format '%f' "$IN_DIR" | while read -r filename; do
+inotifywait -m -q -e close_write -e moved_to --format '%f' "$IN_DIR" | while IFS= read -r filename; do
     case "$filename" in
         *.pdf|*.PDF)
             convert_pdf "$IN_DIR/$filename"
