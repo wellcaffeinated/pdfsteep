@@ -9,9 +9,13 @@ import os
 import re
 import sys
 
+import pymupdf
 import pymupdf4llm
 
 BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+# characters that break a markdown/Obsidian link target (# is a heading
+# anchor, % reads as URL-encoding, ^ a block ref, | an alias, etc.)
+UNSAFE_LINK_CHARS_RE = re.compile(r"[\s#%?^|\[\]()<>:*\"\\`]+")
 TABLE_SEP_RE = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$")
 
 
@@ -46,15 +50,29 @@ def unwrap_br_tags(md_text):
 
 
 def main():
-    pdf_path, out_dir = sys.argv[1], sys.argv[2]
+    pdf_path, out_dir = os.path.abspath(sys.argv[1]), sys.argv[2]
     name = os.path.splitext(os.path.basename(pdf_path))[0]
-    target_dir = os.path.join(out_dir, name)
+    target_dir = os.path.abspath(os.path.join(out_dir, name))
     os.makedirs(target_dir, exist_ok=True)
 
+    # pymupdf4llm makes the image path relative to cwd and then rewrites
+    # spaces/brackets/dashes in it - but saves to that rewritten path, so
+    # any such character in out_dir or the PDF name sends the save to a
+    # directory that doesn't exist. Running from target_dir leaves only
+    # "images/<file>" to be rewritten, and also makes the image links in
+    # the markdown relative to the .md file.
+    os.chdir(target_dir)
+
+    # Image files are named after the document. Opening from a stream
+    # leaves the document unnamed, so pymupdf4llm falls back to the
+    # filename we give it - one with no characters that break links.
+    with open(pdf_path, "rb") as f:
+        doc = pymupdf.open(stream=f.read(), filetype="pdf")
     md_text = pymupdf4llm.to_markdown(
-        pdf_path,
+        doc,
+        filename=UNSAFE_LINK_CHARS_RE.sub("_", name) + ".pdf",
         write_images=True,
-        image_path=os.path.join(target_dir, "images"),
+        image_path="images",
         use_ocr=False,
     )
     md_text = unwrap_br_tags(md_text)
